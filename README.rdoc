@@ -1,4 +1,4 @@
-= Neo4j.rb
+= Neo4j.rb - Cluster Branch
 
 Neo4j.rb is a graph database for JRuby.
  

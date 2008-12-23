@@ -36,10 +36,12 @@ require 'neo4j/version'
 require 'cluster/jars'
 require 'cluster/message_producer'
 require 'cluster/message_consumer'
+require 'cluster/broker'
 
 # 
 # Set logger used by Neo4j
 # Need to be done first since loading the required files might use this logger
+# TODO: want a better logging component, java's Log4j, or use Rails if available ?
 #
 require 'logger'
 $NEO_LOGGER = Logger.new(STDOUT)

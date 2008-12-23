@@ -183,7 +183,7 @@ module Neo4j
       unless failure?
         @nodes_to_be_reindexed.each_value {|node| node.reindex!}
         @nodes_to_be_reindexed.clear
-        unless @broadcast_event.empty? and Neo4j::Config[:cluster_master]
+        if !@broadcast_event.empty? and Neo4j::Config[:cluster_master]
           puts "Broadcasting #{@broadcast_event.size} events"
           handler = Cluster::MessageProducer.new
           @broadcast_event.each do |event|

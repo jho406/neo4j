@@ -21,8 +21,10 @@ module Cluster
 
     def send_message(line)
       #    puts "received input of #{line}"
-      m = @session.createTextMessage()  ;
-      m.set_text(line)
+#      m = @session.createTextMessage()  ;
+#      m.set_text(line)
+      m = @session.create_bytes_message
+      m.write_bytes line.to_java_bytes
       @producer.send(m)
     end
 

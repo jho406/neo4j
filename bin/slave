@@ -1,0 +1,14 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH << File.expand_path(File.dirname(__FILE__) + "/../lib")
+
+begin
+  require 'neo4j'
+rescue LoadError
+  require 'rubygems'
+  require 'neo4j'
+end
+
+Neo4j::Config[:cluster_slave] = true
+Neo4j::Config[:storage_path] = 'slave-data'
+Neo4j.start

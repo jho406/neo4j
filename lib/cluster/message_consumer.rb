@@ -11,7 +11,8 @@ module Cluster
     include javax.jms.MessageListener
 
     def onMessage(serialized_message)
-      message_body = serialized_message.get_content.get_data.inject("") { |body, byte| body << byte }
+      #message_body = serialized_message.get_content.get_data.inject("") { |body, byte| body << byte }
+      message_body = String.from_java_bytes serialized_message.get_content.get_data
 # TODO ENCODING PROBLEM ...
 #      eval):1: Invalid char `\0' ('') in expression
 #cluster/message_consumer.rb:16:in `onMessage': (eval):1: Invalid char `\0' ('') in expression (SyntaxError)
@@ -22,20 +23,21 @@ module Cluster
 
     def run
       factory = ActiveMQConnectionFactory.new("tcp://localhost:61616")
-      connection = factory.create_connection();
-      @session = connection.create_session(false, Session::AUTO_ACKNOWLEDGE);
+      @connection = factory.create_connection();
+      @session = @connection.create_session(false, Session::AUTO_ACKNOWLEDGE);
       queue = @session.create_queue("test1-queue");
 
       consumer = @session.create_consumer(queue);
       consumer.set_message_listener(self);
 
-      connection.start();
+      @connection.start();
       puts "Listening..."
     end
 
     def close
-      @session.unsubscribe("test1-queue") # TODO, we will not get anything from broker after this call
-      @session.close
+#      @session.unsubscribe("test1-queue") # TODO, we will not get anything from broker after this call
+      #@connection.close
+      @connection.stop
     end
   end
 

@@ -40,38 +40,40 @@ describe "Event" do
 end
 
 
-describe "Event replicated" do
-  before(:each) do
-    start
-    undefine_class :Person
-    class Person
-      include Neo4j::NodeMixin
-      property :age
-    end
-    Neo4j::Config[:cluster_master] = true
-  end
-  after(:each) do
-    stop
-  end
-  
-  it "should create a new node on Neo4j::NodeCreatedEvent" do
-    pending
-    node = mock('Node')
-    node.stub!(:neo_node_id).and_return("1")
-    node.stub!(:class).and_return(Person)
-    
-    event = Neo4j::NodeCreatedEvent.new(node)
-    k = eval(event.replicate)
-    k.should be_instance_of(Person)
-  end
-
-  it "should create a new node on Neo4j::NodeCreatedEvent" do
-    person = Person.new
-    event = Neo4j::PropertyChangedEvent.new(person, :age, "10", "11")
-    k = eval(event.replicate)
-    k.should be_instance_of(Person)
-    k.age.should == "11"
-    puts k, k.class.to_s, k.neo_node_id
-  end
-
-end
+#describe "Event replicated" do
+#
+#  before(:each) do
+#    start
+#    undefine_class :Person
+#    class Person
+#      include Neo4j::NodeMixin
+#      property :age
+#    end
+#    Neo4j::Config[:cluster_master] = true
+#  end
+#  after(:each) do
+#    stop
+#  end
+#  
+#  it "should create a new node on Neo4j::NodeCreatedEvent" do
+#    pending
+#    node = mock('Node')
+#    node.stub!(:neo_node_id).and_return("1")
+#    node.stub!(:class).and_return(Person)
+#
+#    event = Neo4j::NodeCreatedEvent.new(node)
+#    k = eval(event.replicate)
+#    k.should be_instance_of(Person)
+#  end
+#
+#  it "should create a new node on Neo4j::NodeCreatedEvent" do
+#    pending
+#    person = Person.new
+#    event = Neo4j::PropertyChangedEvent.new(person, :age, "10", "11")
+#    k = eval(event.replicate)
+#    k.should be_instance_of(Person)
+#    k.age.should == "11"
+#    puts k, k.class.to_s, k.neo_node_id
+#  end
+#
+#end

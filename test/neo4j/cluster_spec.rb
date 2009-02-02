@@ -20,6 +20,7 @@ describe 'Neo4j::Node cluster' do
   end
 
   it "should print events" do
+    pending
     c = ClusterNode.new
     c.foo = 2
   end

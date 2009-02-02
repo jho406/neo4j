@@ -1,9 +1,67 @@
+#
+# This files contains common private classes that implements various Neo4j java interfaces.
+# This classes are only used inside this Relations module
+#
+
 module Neo4j
   module Relations
 
+    # Wrapper for org.neo4j.api.core.ReturnableEvaluator
     #
-    # This is a private class holding the type of a relationship
+    # :api: private
+    class ReturnableEvaluator
+      include org.neo4j.api.core.ReturnableEvaluator
+
+      def initialize(proc)
+        @proc = proc
+      end
+
+      def isReturnableNode( traversal_position )
+        # if the Proc takes one argument that we give it the traversal_position
+        result = if @proc.arity == 1
+          # wrap the traversal_position in the Neo4j.rb TraversalPostion object
+          @proc.call TraversalPosition.new(traversal_position)
+        else # otherwise we eval the proc in the context of the current node
+          # do not include the start node
+          return false if traversal_position.isStartNode()
+          eval_context = Neo4j::load(traversal_position.currentNode.getId)
+          eval_context.instance_eval(&@proc)
+        end
+
+        # java does not treat nil as false so we need to do instead
+        (result)? true : false
+      end
+      
+      #       public boolean isReturnableNode( TraversalPosition position )
+      #     {
+      #         // Return nodes until we've reached 5 nodes or end of graph
+      #         return position.returnedNodesCount() < 5;
+      #     }
+
+    end
+
+    
+    # Wrapper for the neo4j org.neo4j.api.core.StopEvalutor interface.
+    # Used in the Neo4j Traversers.
     #
+    # :api: private
+    class DepthStopEvaluator
+      include org.neo4j.api.core.StopEvaluator
+
+      def initialize(depth)
+        @depth = depth
+      end
+
+      def isStopNode(pos)
+        pos.depth >= @depth
+      end
+    end
+
+
+    # Wrapper for the Java org.neo4j.api.core.RelationshipType interface.
+    # Each type is a singelton.
+    # 
+    # :api: private
     class RelationshipType
       include org.neo4j.api.core.RelationshipType
 

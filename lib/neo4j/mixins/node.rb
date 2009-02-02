@@ -263,14 +263,39 @@ module Neo4j
     end
     
 
-    # Returns a relation traverser for traversing all types of relation from and to this node
-    # @see Neo4j::Relations::RelationTraverser
+    # Returns a Neo4j::Relations::RelationTraverser object for accessing relations from and to this node.
+    # The Neo4j::Relations::RelationTraverser is an Enumerable that returns Neo4j::RelationMixin objects.
+    #
+    # ==== See Also
+    # * Neo4j::Relations::RelationTraverser
+    # * Neo4j::RelationMixin
+    #
+    # ==== Example
+    #
+    #   person_node.relations.outgoing(:friends).each { ... }
     #
     # :api: public
     def relations
       Relations::RelationTraverser.new(@internal_node)
     end
 
+
+    # Returns a Neo4j::Relations::NodeTraverser object for traversing nodes from and to this node.
+    # The Neo4j::Relations::NodeTraverser is an Enumerable that returns Neo4j::NodeMixin objects.
+    #
+    # ==== See Also
+    # Neo4j::Relations::NodeTraverser
+    #
+    # ==== Example
+    #
+    #   person_node.traverse.outgoing(:friends).each { ... }
+    #
+    # :api: public
+    def traverse
+      Relations::NodeTraverser.new(@internal_node)
+    end
+
+    
     # Mark this node to be reindex by lucene after the transaction finishes
     #
     # @api private
@@ -366,7 +391,7 @@ module Neo4j
       # @api private
       def fire_event(event)
         index_triggers.each_value {|trigger| trigger.call(event.node, event)}
-        Transaction.current.broadcast_event(event)
+        Transaction.current.broadcast_event(event) if Config[:cluster_master]
       end
       
       
@@ -456,14 +481,18 @@ module Neo4j
 
 
       # Returns true if the given property name has been defined with the class
-      # method property or properties
+      # method property or properties.
+      #
+      # Notice that the node may have properties that has not been declared.
+      # It is always possible to set an undeclared property on a node.
       #
       # ==== Returns
       # true or false
       #
       # :api: public
       def property?(prop_name)
-        properties_info[prop_name.to_sym][:defined].nil?
+        return false if properties_info[prop_name.to_sym].nil?
+        properties_info[prop_name.to_sym][:defined] == true
       end
 
 
@@ -589,12 +618,12 @@ module Neo4j
       def has_one(rel_type)
 
         module_eval(%Q{def #{rel_type}=(value)
-                        r = Relations::HasNRelations.new(self,'#{rel_type.to_s}')
+                        r = Relations::HasN.new(self,'#{rel_type.to_s}')
                         r << value
                     end},  __FILE__, __LINE__)
         
         module_eval(%Q{def #{rel_type}
-                        r = Relations::HasNRelations.new(self,'#{rel_type.to_s}')
+                        r = Relations::HasN.new(self,'#{rel_type.to_s}')
                         r.to_a[0]
                     end},  __FILE__, __LINE__)
         relations_info[rel_type] = Relations::RelationInfo.new
@@ -612,13 +641,12 @@ module Neo4j
       # :api: public
       def has_n(rel_type)
         module_eval(%Q{def #{rel_type}(&block)
-                        Relations::HasNRelations.new(self,'#{rel_type.to_s}', &block)
+                        Relations::HasN.new(self,'#{rel_type.to_s}', &block)
                     end},  __FILE__, __LINE__)
         relations_info[rel_type] = Relations::RelationInfo.new
       end
 
 
-      #
       # Returns node instances of this class.
       #
       # :api: public
@@ -628,7 +656,7 @@ module Neo4j
       end
 
 
-      # Creates a new relation. The relation must be outgoing.
+      # Creates a new outgoing relation.
       # 
       # :api: private
       def new_relation(rel_name, internal_relation)
@@ -644,7 +672,7 @@ module Neo4j
       # ==== Example
       #   MyNode.find(:name => 'foo', :company => 'bar')
       #
-      # Or using a DSL query
+      # Or using a DSL query (experimental)
       #   MyNode.find{(name == 'foo') & (company == 'bar')}
       #
       # ==== Returns

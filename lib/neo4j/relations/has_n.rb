@@ -1,58 +1,59 @@
 module Neo4j
   module Relations
-    #
+
     # Enables traversal of nodes of a specific type that one node has.
     # Used for traversing relationship of a specific type.
     # Neo4j::NodeMixin can declare
     #
-    class HasNRelations
+    class HasN
       include Enumerable
       extend Neo4j::TransactionalMixin
 
-      # TODO other_node_class not used ?
       def initialize(node, type, &filter)
         @node = node
         @type = RelationshipType.instance(type)
-        @filter = filter
-        @depth = 1
+        @traverser = NodeTraverser.new(node.internal_node)
         @info = node.class.relations_info[type.to_sym]
 
         if @info[:outgoing]
-          @direction = org.neo4j.api.core.Direction::OUTGOING
-          @type = RelationshipType.instance(type)
+          @traverser.outgoing(type)
         else
-          @direction = org.neo4j.api.core.Direction::INCOMING
           other_class_type = @info[:type].to_s
           @type = RelationshipType.instance(other_class_type)
+          @traverser.incoming(other_class_type)
         end
+
+        @traverser.filter(&filter) unless filter.nil?
       end
 
-
-      def each
-        stop = DepthStopEvaluator.new(@depth)
-        traverser = @node.internal_node.traverse(org.neo4j.api.core.Traverser::Order::BREADTH_FIRST,
-          stop,
-          org.neo4j.api.core.ReturnableEvaluator::ALL_BUT_START_NODE,
-          @type,
-          @direction)
-        Neo4j::Transaction.run do
-          iter = traverser.iterator
-          while (iter.hasNext) do
-            node = Neo4j.instance.load_node(iter.next)
-            if !@filter.nil?
-              res =  node.instance_eval(&@filter)
-              next unless res
-            end
-            yield node
-          end
-        end
-      end
-
+      
+      # Sets the depth of the traversal.
+      # Default is 1 if not specified.
       #
+      # ==== Example
+      #  morpheus.friends.depth(:all).each { ... }
+      #  morpheus.friends.depth(3).each { ... }
+      #  
+      # ==== Arguments
+      # d<Fixnum,Symbol>:: the depth or :all if traversing to the end of the network.
+      # ==== Return
+      # self
+      # 
+      # :api: public
+      def depth(d)
+        @traverser.depth(d)
+        self
+      end
+      
+      def each(&block)
+        @traverser.each(&block)
+      end
+
+
       # Creates a relationship instance between this and the other node.
       # If a class for the relationship has not been specified it will be of type DynamicRelation.
-      # To set a relationship type see #Neo4j::relations
       #
+      # :api: public
       def new(other)
         from, to = @node, other
         from,to = to,from unless @info[:outgoing]
@@ -64,10 +65,10 @@ module Neo4j
       end
 
 
-      #
       # Creates a relationship between this and the other node.
-      # Returns self so that we can add several nodes like this:
       #
+      # ==== Example
+      # 
       #   n1 = Node.new # Node has declared having a friend type of relationship
       #   n2 = Node.new
       #   n3 = NodeMixin.new
@@ -79,6 +80,10 @@ module Neo4j
       #   n1.friends.new(n2)
       #   n1.friends.new(n3)
       #
+      # ==== Returns
+      # self
+      #
+      # :api: public
       def <<(other)
         from, to = @node, other
         from,to = to,from unless @info[:outgoing]
@@ -90,21 +95,6 @@ module Neo4j
         self
       end
 
-
-      #
-      # Private class
-      #
-      class DepthStopEvaluator
-        include org.neo4j.api.core.StopEvaluator
-
-        def initialize(depth)
-          @depth = depth
-        end
-
-        def isStopNode(pos)
-          pos.depth >= @depth
-        end
-      end
 
       transactional :<<
       end

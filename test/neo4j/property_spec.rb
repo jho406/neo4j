@@ -13,7 +13,7 @@ class MyPropertyData
 end
 
 
-describe 'Neo4j::Nodes having no properties' do
+describe 'NodeMixin having no properties' do
   before(:all) do
     start
     undefine_class :MyNode
@@ -39,7 +39,7 @@ describe 'Neo4j::Nodes having no properties' do
 
 end
 
-describe 'Neo4j::Nodes having Date properties' do
+describe 'NodeMixin having Date properties' do
 
   before(:all) do
     start
@@ -208,6 +208,16 @@ describe 'Neo4j properties' do
     @node.props.should have_key('p2')
   end
 
+  it "should know with properties has been defined on the class" do
+    TestNode.property?(:p1).should be_true
+    TestNode.property?(:p2).should be_true
+    TestNode.property?('p1').should be_true
+    TestNode.property?('p2').should be_true
+
+    TestNode.property?(:p3).should be_false
+    TestNode.property?("ojojoj").should be_false
+  end
+  
   it "should allow to get a property that has not been set" do
     @node.should_not be_property('p1')
     @node.p1.should be_nil

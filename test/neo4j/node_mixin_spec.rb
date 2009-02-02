@@ -6,7 +6,7 @@ require 'neo4j/spec_helper'
 
 
 
-describe 'Neo4j::Node' do
+describe 'NodeMixin' do
   before(:all) do
     start
   end
@@ -427,5 +427,6 @@ describe "Neo4j::Node#delete"  do
     t2.friends.to_a.should_not include(t1)      
   end
 end
+
 
 

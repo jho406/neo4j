@@ -141,6 +141,7 @@ module Neo4j
       @id = @@counter
       @failure = false      
       @nodes_to_be_reindexed = {}
+      @broadcast_event = []
       Thread.current[:transaction] = self
       $NEO_LOGGER.debug{"create #{self.to_s}"}
     end
@@ -183,6 +184,19 @@ module Neo4j
       unless failure?
         @nodes_to_be_reindexed.each_value {|node| node.reindex!}
         @nodes_to_be_reindexed.clear
+
+        if !@broadcast_event.empty? and Neo4j::Config[:cluster_master]
+          puts "Broadcasting #{@broadcast_event.size} events"
+          handler = Cluster::MessageProducer.new
+          @broadcast_event.each do |event|
+            next unless event.respond_to?(:replicate)
+            ruby_code = event.replicate
+            puts "Send message '#{ruby_code}'"
+            handler.send_message(ruby_code)
+          end
+          handler.close
+          puts "Closed message handler"
+        end
       end
       
       @neo_tx.finish
@@ -220,7 +234,12 @@ module Neo4j
     def reindex(node)
       @nodes_to_be_reindexed[node.neo_node_id] = node
     end
-    
+
+
+    def broadcast_event(event)
+      puts "Add broadcast event '#{event}'"
+      @broadcast_event << event
+    end
   end
   
   #

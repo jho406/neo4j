@@ -72,10 +72,17 @@ module Neo4j
       super node
     end
   end
+
+
   
   class NodeCreatedEvent < NodeLifecycleEvent
     def initialize(node)
       super node
+    end
+    def replicate
+      <<-END
+#{self.node.class.to_s}.new
+      END
     end
   end
 end

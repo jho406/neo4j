@@ -9,6 +9,8 @@ require 'neo4j/jars'
 # lucene
 require 'lucene'
 
+# smack spike
+require 'neo4j/smack'
 
 # mixins
 require 'neo4j/mixins/transactional'

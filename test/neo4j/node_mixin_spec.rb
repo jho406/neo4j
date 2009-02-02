@@ -125,7 +125,7 @@ describe 'NodeMixin' do
       end
     end
 
-    it "should be able to update a node from a value obejct" do
+    it "should be able to update a node from a value object" do
       # given
       t = TestNode.new
       t.name='kalle'

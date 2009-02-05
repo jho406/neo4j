@@ -11,25 +11,27 @@ module Cluster
     include javax.jms.MessageListener
 
     def initialize
-      factory = ActiveMQConnectionFactory.new("tcp://localhost:61616")
+      # create a connection to e.g. vm://neobroker?broker.persistent=false or tcp://localhost:61616
+      factory = ActiveMQConnectionFactory.new Neo4j::Config[:mq_connector]
       connection = factory.create_connection();
       @session = connection.create_session(false, Session::AUTO_ACKNOWLEDGE);
-      queue = @session.create_queue("test1-queue");
+      topic = @session.create_topic(Neo4j::Config[:mq_topic_name]);
 
-      @producer = @session.create_producer(queue);
+      @producer = @session.create_producer(topic);
+      sleep 1 # make sure the broker starts up
+      puts "Message Producer started on #{Neo4j::Config[:mq_connector]} topic #{Neo4j::Config[:mq_topic_name]}"
     end
 
     def send_message(line)
-      #    puts "received input of #{line}"
-#      m = @session.createTextMessage()  ;
-#      m.set_text(line)
       m = @session.create_bytes_message
-      m.write_bytes line.to_java_bytes
+      data = line.to_java_bytes
+      m.write_bytes data
       @producer.send(m)
     end
 
     def close
       @session.close
+      puts "Message Producer closed #{Neo4j::Config[:mq_connector]} topic #{Neo4j::Config[:mq_topic_name]}"
     end
 
   end

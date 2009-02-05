@@ -18,22 +18,27 @@ module Neo4j
     @instance = Neo.new 
     @instance.start
 
+    # Config ActiveMQ cluster communication
     if Neo4j::Config[:cluster_slave]
       puts "start new cluster slave"
-      @cluster_slave = Cluster::MessageConsumer.new
-      @cluster_slave.run
+      @message_consumer = Cluster::MessageConsumer.new
+      @message_consumer.run
       puts "running cluster slave"
     end
+
+    if Neo4j::Config[:cluster_master]
+      puts "cluster_master=true => start new message_producer"
+      @message_producer = Cluster::MessageProducer.new
+      puts "running message_producer"
+    end
+
+
     at_exit do
       Neo4j.stop
-      if @cluster_slave
-        puts "Stopping cluster slave ..."
-        @cluster_slave.close
-        puts "Stopped cluster slave - done"
-      end
     end
     @instance
   end
+
 
   # Return a started neo instance.
   # It will be started if this has not already been done.
@@ -51,11 +56,34 @@ module Neo4j
   # 
   # :api: public
   def self.stop
-    @instance.stop unless @instance.nil?
+    # make sure it was not already stopped
+    return unless running?
+    
+    if @message_consumer
+      #puts "Stopping message_consumer (cluster slave) ..."
+      @message_consumer.close
+      @message_consumer = nil
+      #puts "Stopped cluster slave - done"
+    end
+
+    if @message_producer
+      #puts "Stopping message_producer (cluster master) ..."
+      @message_producer.close
+      @message_producer = nil
+      #puts "Stopped cluster master - done"
+    end
+
+    @instance.stop 
     @instance = nil
   end
 
-  # 
+  # Returns the active mq message producer or nil
+  #
+  # :api: private
+  def self.message_producer
+    @message_producer
+  end
+  
   # Returns true if neo4j is running
   #
   # :api: public
@@ -189,8 +217,6 @@ module Neo4j
       @neo.shutdown  
       @neo = nil
     end
-
-
     
     def tx_manager
       @neo.getConfig().getTxModule().getTxManager()

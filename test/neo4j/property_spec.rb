@@ -37,6 +37,7 @@ describe 'NodeMixin having no properties' do
     MyNode.properties_info[:since][:type].should == Date
   end
 
+
 end
 
 describe 'NodeMixin having Date properties' do

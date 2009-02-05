@@ -185,15 +185,13 @@ module Neo4j
         @nodes_to_be_reindexed.clear
         if !@broadcast_event.empty? and Neo4j::Config[:cluster_master]
           puts "Broadcasting #{@broadcast_event.size} events"
-          handler = Cluster::MessageProducer.new
+          handler = Neo4j.message_producer #Cluster::MessageProducer.new
           @broadcast_event.each do |event|
             next unless event.respond_to?(:replicate)
             ruby_code = event.replicate
             puts "Send message '#{ruby_code}'"
             handler.send_message(ruby_code)
           end
-          handler.close
-          puts "Closed message handler"
         end
       end
       

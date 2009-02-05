@@ -17,8 +17,10 @@ module Neo4j
       def defaults
         @defaults ||= {
           :storage_path => 'tmp/neo4j',
-          :cluster_slave => false,
-          :cluster_master => false
+          :mq_topic_name => 'neo4j', # the name of the topic
+          :mq_receiver => false,
+          :mq_producer => false,
+          :mq_connector => 'vm://neobroker?broker.persistent=false' # use an embedded broker by default
         }
       end
 

@@ -9,4 +9,10 @@ module Cluster
   ActiveMQBytesMessage = org.apache.activemq.command.ActiveMQBytesMessage
   MessageListener = javax.jms.MessageListener
   Session = javax.jms.Session
+
+  lm = java.util.logging.LogManager.log_manager
+  lm.logger_names.each do |ln|
+    lm.get_logger(ln).set_level(java.util.logging.Level::SEVERE)
+  end
+
 end

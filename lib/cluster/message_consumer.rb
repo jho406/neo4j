@@ -11,36 +11,32 @@ module Cluster
     include javax.jms.MessageListener
 
     def onMessage(serialized_message)
-      #message_body = serialized_message.get_content.get_data.inject("") { |body, byte| body << byte }
-      message_body = String.from_java_bytes serialized_message.get_content.get_data
-# TODO ENCODING PROBLEM ...
-#      eval):1: Invalid char `\0' ('') in expression
-#cluster/message_consumer.rb:16:in `onMessage': (eval):1: Invalid char `\0' ('') in expression (SyntaxError)
-
-      puts message_body
-      eval(message_body)
+      size = serialized_message.getBodyLength()
+      data = serialized_message.get_content.get_data[0...size]
+      message_body = String.from_java_bytes data
+      puts "RECEIVED MESSAGE '#{message_body}'"
+#      eval(message_body)
     end
 
     def run
-      factory = ActiveMQConnectionFactory.new("tcp://localhost:61616")
+      # create a connection to e.g. vm://neobroker?broker.persistent=false or tcp://localhost:61616
+      factory = ActiveMQConnectionFactory.new Neo4j::Config[:mq_connector]
       @connection = factory.create_connection();
       @session = @connection.create_session(false, Session::AUTO_ACKNOWLEDGE);
-      queue = @session.create_queue("test1-queue");
+      topic = @session.create_topic(Neo4j::Config[:mq_topic_name]);
 
-      consumer = @session.create_consumer(queue);
+      consumer = @session.create_consumer(topic);
       consumer.set_message_listener(self);
 
       @connection.start();
-      puts "Listening..."
+      puts "Message Consumer listening on #{Neo4j::Config[:mq_connector]} topic #{Neo4j::Config[:mq_topic_name]}"
     end
 
     def close
-#      @session.unsubscribe("test1-queue") # TODO, we will not get anything from broker after this call
-      #@connection.close
-      @connection.stop
+      #@session.unsubscribe("test1-queue") # TODO, we will not get anything from broker after this call
+      @connection.close
+      puts "Message Consumer closed #{Neo4j::Config[:mq_connector]} topic #{Neo4j::Config[:mq_topic_name]} ..."
     end
   end
 
 end
-#handler = MessageConsumer.new
-#handler.run

@@ -19,18 +19,8 @@ module Neo4j
     @instance.start
 
     # Config ActiveMQ cluster communication
-    if Neo4j::Config[:cluster_slave]
-      puts "start new cluster slave"
-      @message_consumer = Cluster::MessageConsumer.new
-      @message_consumer.run
-      puts "running cluster slave"
-    end
-
-    if Neo4j::Config[:cluster_master]
-      puts "cluster_master=true => start new message_producer"
-      @message_producer = Cluster::MessageProducer.new
-      puts "running message_producer"
-    end
+    message_consumer.start if Neo4j::Config[:mq_consumer]
+    message_producer.start if Neo4j::Config[:mq_producer]
 
 
     at_exit do
@@ -58,32 +48,29 @@ module Neo4j
   def self.stop
     # make sure it was not already stopped
     return unless running?
-    
-    if @message_consumer
-      #puts "Stopping message_consumer (cluster slave) ..."
-      @message_consumer.close
-      @message_consumer = nil
-      #puts "Stopped cluster slave - done"
-    end
 
-    if @message_producer
-      #puts "Stopping message_producer (cluster master) ..."
-      @message_producer.close
-      @message_producer = nil
-      #puts "Stopped cluster master - done"
-    end
+    message_consumer.stop if Neo4j::Config[:mq_consumer]
+    message_producer.stop if Neo4j::Config[:mq_producer]
 
     @instance.stop 
     @instance = nil
   end
 
-  # Returns the active mq message producer or nil
+  # Returns the active mq message producer.
   #
   # :api: private
   def self.message_producer
-    @message_producer
+    @message_producer ||= Cluster::MessageProducer.new
   end
-  
+
+  # Returns the active mq message receiver
+  # 
+  # :api: private
+  def self.message_consumer
+    @message_consumer ||= Cluster::MessageConsumer.new
+  end
+
+
   # Returns true if neo4j is running
   #
   # :api: public
@@ -93,13 +80,13 @@ module Neo4j
   
   # Return a started neo instance.
   # It will be started if this has not already been done.
-  # 
+  #
   # ==== Parameters
   # node_id<String, to_i>:: the unique neo id for one node
-  # 
+  #
   # ==== Returns
   # The node object (NodeMixin) or nil
-  # 
+  #
   # :api: public
   def self.load(node_id)
     self.instance.find_node(node_id.to_i)
@@ -124,9 +111,9 @@ module Neo4j
   # Allows run and stop the Neo4j service
   # Contains global ćonstants such as location of the neo storage and index files
   # on the filesystem.
-  # 
+  #
   # A wrapper class around org.neo4j.api.core.EmbeddedNeo
-  # 
+  #
   class Neo
 
     #
@@ -166,14 +153,14 @@ module Neo4j
     
     #
     # Returns a NodeMixin object that has the given id or nil if it does not exist.
-    # 
-    def find_node(id) 
+    #
+    def find_node(id)
       begin
         Transaction.run do
           neo_node = @neo.getNodeById(id)
           load_node(neo_node)
         end
-      rescue org.neo4j.api.core.NotFoundException 
+      rescue org.neo4j.api.core.NotFoundException
         nil
       end
     end
@@ -214,7 +201,7 @@ module Neo4j
     #
     def stop
       $NEO_LOGGER.info {"stop neo #{@neo}"}
-      @neo.shutdown  
+      @neo.shutdown
       @neo = nil
     end
     

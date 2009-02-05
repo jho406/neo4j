@@ -49,7 +49,7 @@ end
 #      include Neo4j::NodeMixin
 #      property :age
 #    end
-#    Neo4j::Config[:cluster_master] = true
+#    Neo4j::Config[:mq_producer] = true
 #  end
 #  after(:each) do
 #    stop

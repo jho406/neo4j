@@ -15,10 +15,19 @@ module Cluster
       data = serialized_message.get_content.get_data[0...size]
       message_body = String.from_java_bytes data
       puts "RECEIVED MESSAGE '#{message_body}'"
-#      eval(message_body)
+      @receiver_proc.call message_body
     end
 
-    def run
+    def start(&receiver_proc)
+      if (receiver_proc.nil?)
+        @receiver_proc = proc do |message|
+          eval message
+        end
+      else
+        # this is mainly useful for testing
+        @receiver_proc = receiver_proc
+      end
+      
       # create a connection to e.g. vm://neobroker?broker.persistent=false or tcp://localhost:61616
       factory = ActiveMQConnectionFactory.new Neo4j::Config[:mq_connector]
       @connection = factory.create_connection();
@@ -29,12 +38,18 @@ module Cluster
       consumer.set_message_listener(self);
 
       @connection.start();
+      @runnig = true
       puts "Message Consumer listening on #{Neo4j::Config[:mq_connector]} topic #{Neo4j::Config[:mq_topic_name]}"
     end
 
-    def close
+    def running?
+      @running
+    end
+    
+    def stop
       #@session.unsubscribe("test1-queue") # TODO, we will not get anything from broker after this call
       @connection.close
+      @running = false
       puts "Message Consumer closed #{Neo4j::Config[:mq_connector]} topic #{Neo4j::Config[:mq_topic_name]} ..."
     end
   end

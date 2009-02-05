@@ -10,7 +10,7 @@ module Cluster
     include javax.jms.Session
     include javax.jms.MessageListener
 
-    def initialize
+    def start
       # create a connection to e.g. vm://neobroker?broker.persistent=false or tcp://localhost:61616
       factory = ActiveMQConnectionFactory.new Neo4j::Config[:mq_connector]
       connection = factory.create_connection();
@@ -20,8 +20,14 @@ module Cluster
       @producer = @session.create_producer(topic);
       sleep 1 # make sure the broker starts up
       puts "Message Producer started on #{Neo4j::Config[:mq_connector]} topic #{Neo4j::Config[:mq_topic_name]}"
+      @running = true
     end
 
+    def running?
+      @running
+    end
+
+    
     def send_message(line)
       m = @session.create_bytes_message
       data = line.to_java_bytes
@@ -29,8 +35,9 @@ module Cluster
       @producer.send(m)
     end
 
-    def close
+    def stop
       @session.close
+      @running = false
       puts "Message Producer closed #{Neo4j::Config[:mq_connector]} topic #{Neo4j::Config[:mq_topic_name]}"
     end
 

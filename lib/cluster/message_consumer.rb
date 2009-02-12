@@ -27,19 +27,10 @@ module Cluster
         # this is mainly useful for testing
         @receiver_proc = receiver_proc
       end
-      
-      # create a connection to e.g. vm://neobroker?broker.persistent=false or tcp://localhost:61616
-      factory = ActiveMQConnectionFactory.new Neo4j::Config[:mq_connector]
-      @connection = factory.create_connection();
-      @session = @connection.create_session(false, Session::AUTO_ACKNOWLEDGE);
-      topic = @session.create_topic(Neo4j::Config[:mq_topic_name]);
 
-      consumer = @session.create_consumer(topic);
-      consumer.set_message_listener(self);
-
-      @connection.start();
+      create_consumer.set_message_listener(self);
       @runnig = true
-      puts "Message Consumer listening on #{Neo4j::Config[:mq_connector]} topic #{Neo4j::Config[:mq_topic_name]}"
+      puts "Message Consumer Started"
     end
 
     def running?

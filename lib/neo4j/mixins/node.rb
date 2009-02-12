@@ -249,6 +249,12 @@ module Neo4j
       self.class.fire_event(NodeDeletedEvent.new(self))
       relations.each {|r| r.delete}
       @internal_node.delete
+
+      message = Cluster::session.create_message
+      message.setStringProperty('node_id', self.neo_node_id.to_s)
+      message.setStringProperty('type', 'node')
+      message.setStringProperty('action', 'deleted')
+      Cluster::producer.send message
       lucene_index.delete(neo_node_id)
     end
     
@@ -571,18 +577,27 @@ module Neo4j
           doc[prop] = node.send(prop)
         end
         index_updaters[prop] = updater
-        
-        trigger = lambda do |node, event|
-          node.reindex if Neo4j::PropertyChangedEvent.trigger?(event, :property, prop)
+
+        Cluster::create_consumer("property='#{prop}'") do |m|
+          node_id = m.getStringProperty('node_id')
+          node = Neo4j::load(node_id)
+          node.reindex
         end
-        index_triggers[prop] = trigger
+        
+#        trigger = lambda do |node, event|
+#          node.reindex if Neo4j::PropertyChangedEvent.trigger?(event, :property, prop)
+#        end
+#        index_triggers[prop] = trigger
       end
       
       
       # :api: private
       def index_relation(index_key, rel_type, prop)
+        # what class does the relationship point to ?
         clazz = relations_info[rel_type.to_sym][:class]
-        
+
+        # are we indexing an incomming relationship ?
+        # declared index as (:foo).from(OtherClass)
         type = relations_info[rel_type.to_sym][:type]  # this or the other node we index ?
         rel_type = type.to_sym unless type.nil?
 

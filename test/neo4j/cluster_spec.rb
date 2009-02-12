@@ -10,11 +10,6 @@ describe 'Neo4j::Node cluster' do
     # we start it here programmatically so that it will not be stopped when neo stops
     # reuse the same producer for all specs - since it takes time to start and stop it
     Neo4j.message_producer.start
-    
-    class ClusterNode
-      include Neo4j::NodeMixin
-      property :foo, :bar
-    end
   end
 
   after(:all) do

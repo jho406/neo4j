@@ -12,14 +12,14 @@ module Cluster
 
     def start
       # create a connection to e.g. vm://neobroker?broker.persistent=false or tcp://localhost:61616
-      factory = ActiveMQConnectionFactory.new Neo4j::Config[:mq_connector]
+      factory = ActiveMQConnectionFactory.new mq_connector
       connection = factory.create_connection();
       @session = connection.create_session(false, Session::AUTO_ACKNOWLEDGE);
-      topic = @session.create_topic(Neo4j::Config[:mq_topic_name]);
+      topic = @session.create_topic(mq_topic_name);
 
       @producer = @session.create_producer(topic);
       sleep 1 # make sure the broker starts up
-      puts "Message Producer started on #{Neo4j::Config[:mq_connector]} topic #{Neo4j::Config[:mq_topic_name]}"
+      puts "Message Producer started on #{mq_connector} topic #{mq_topic_name}"
       @running = true
     end
 

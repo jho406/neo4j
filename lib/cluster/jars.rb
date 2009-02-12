@@ -1,9 +1,12 @@
 include Java
 
 module Cluster
+  puts "REQUIRE JAR ACTIVEMQ"
   require 'cluster/jars/activemq-all-5.2.0.jar'
 
 
+  BrokerRegistry = org.apache.activemq.broker.BrokerRegistry
+  puts "BROKER #{BrokerRegistry}"
   ActiveMQConnectionFactory = org.apache.activemq.ActiveMQConnectionFactory
   ByteSequence = org.apache.activemq.util.ByteSequence
   ActiveMQBytesMessage = org.apache.activemq.command.ActiveMQBytesMessage

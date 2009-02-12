@@ -20,7 +20,7 @@ module Neo4j
           :mq_topic_name => 'neo4j', # the name of the topic
           :mq_consumer => false,
           :mq_producer => false,
-          :mq_connector => 'vm://neobroker?broker.persistent=false' # use an embedded broker by default
+          :mq_connector => 'vm://neobroker?broker.persistent=false&async=false' # use an embedded broker by default
         }
       end
 

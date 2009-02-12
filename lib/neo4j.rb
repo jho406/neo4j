@@ -36,6 +36,7 @@ require 'neo4j/version'
 
 # cluster - experimental !
 require 'cluster/jars'
+require 'cluster/cluster'
 require 'cluster/message_producer'
 require 'cluster/message_consumer'
 require 'cluster/broker'
